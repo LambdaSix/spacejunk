@@ -136,13 +136,16 @@ function launch {
       set tt to tilt.
 
       if (time:seconds >= last_calc + .5) {
-        print "status: LIFT-OFF" + BLANK at (0, 0).
-        print "speed: " +  round(speed, 1) + "m/s"
-          + ", pitch: " + round(tilt, 1)
-          + ", twr: " + round(twr, 2)
-          + BLANK at (0, 1).
-        print  "apoapsis: " + round(alt:APOAPSIS) + "m" + BLANK at (0, 2).
-        print "========================================" at (0, 3).
+        print_hud(
+          list(
+            list("status: LIFT-OFF"),
+            list(
+              "speed: " +  round(speed, 1) + "m/s"
+              , "pitch: " + round(tilt, 1)
+              , "twr: " + round(twr, 2)
+            ),
+            list("apoapsis: " + round(alt:APOAPSIS) + "m")
+          )).
         set last_calc to time:seconds.
       }
     }
@@ -158,12 +161,15 @@ function launch {
     local last_print is 0.
     until above_atmosphere and reached_apoapsis {
       if time:seconds >= last_print + .5 {
-        print "status: COAST" + BLANK at (0, 0).
-        print "speed: " +  round(SHIP:VELOCITY:surface:mag, 1) + "m/s"
-          + ", pitch: " + round(ship:facing:pitch, 1)
-          + ", apoapsis: " + round(alt:APOAPSIS) + "m"
-          + "            " at (0, 1).
-        print "========================================" at (0, 2).
+        print_hud(
+          list(
+            list("status: COAST"),
+            list(
+              "speed: " + round(SHIP:VELOCITY:surface:mag, 1) + "m/s"
+              , "pitch: " + round(ship:facing:pitch, 1)
+              , "apoapsis: " + round(ALT:APOAPSIS) + "m"
+            )
+          )).
         set last_print to time:seconds.
       }
 
@@ -182,12 +188,15 @@ function launch {
     parameter orbit_alt.
 
     if alt:periapsis < orbit_alt {
-      print "status: CIRCULARIZE" + BLANK at (0, 0).
-      print "speed: " +  round(SHIP:VELOCITY:surface:mag, 1) + "m/s"
-        + ", pitch: " + round(ship:facing:pitch, 1)
-        + ", apoapsis: " + round(alt:APOAPSIS) + "m"
-        + "            " at (0, 1).
-      print "========================================" at (0, 2).
+      print_hud(
+        list(
+          list("status: CIRCULARIZE"),
+          list(
+            "speed: " +  round(SHIP:VELOCITY:surface:mag, 1) + "m/s"
+            , "pitch: " + round(ship:facing:pitch, 1)
+            , "apoapsis: " + round(alt:APOAPSIS) + "m"
+          )
+        )).
       local node to node(time:seconds + eta:apoapsis, 0, 0, 1).
       add node.
       local inc to 10.
@@ -240,12 +249,34 @@ function launch {
       print "Average TWR: " + round(sum_twr / twr_list:length, 2).
     }
 
-    print "status: COMPLETE" + BLANK at (0, 0).
-    print "speed: " +  round(SHIP:VELOCITY:orbit:mag, 1) + "m/s"
-      + ", pitch: " + round(ship:facing:pitch, 1)
-      + ", apoapsis: " + round(alt:APOAPSIS) + "m"
-      + "            " at (0, 1).
-    print "========================================" at (0, 2).
+    print_hud(
+      list(
+        list("status: COMPLETE"),
+        list(
+          "speed: " +  round(SHIP:VELOCITY:orbit:mag, 1) + "m/s"
+          , "pitch: " + round(ship:facing:pitch, 1)
+          , "apoapsis: " + round(alt:APOAPSIS) + "m"
+        )
+      )).
+  }
+
+  function print_hud {
+    parameter huds.
+
+    local width to 17.
+    local x to 0.
+    local y to 0.
+    local B to "          ".
+    for row in huds {
+      set x to 0.
+      print B + B + B + B + B + B at (0, y).
+      for col in row {
+        print col at (x * WIDTH, y).
+        set x to x + 1.
+      }
+      set y to y + 1.
+    }
+    print "===================================================" at (0, y).
   }
 
   /// launch sequence

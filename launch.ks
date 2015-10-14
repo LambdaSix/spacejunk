@@ -84,12 +84,12 @@ function launch {
 
   /// detach stage if out of fuel.
   function check_stage {
-    local staged to False.
-    until ship:maxthrust > 0 {
+    global staged to False.
+    when ship:maxthrust = 0 then {
       PRINT "Out of fuel. Staging.".
       STAGE.
-      wait 1.
       set staged to True.
+      preserve.
    }
    return staged.
   }

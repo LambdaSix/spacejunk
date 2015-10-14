@@ -1,54 +1,69 @@
+// kOS launch Script for Kerbal Space Program by onebit
+//
+// Perform launch based on launch profile calculated by thrust to weight ratio [1].
+//
+// Formula: A * tan(θ/2)^q / |sin(θ)|
+// Where A = orbital speed,
+//       θ = pitch of space craft
+//       q = TWR (thrust to weight ratio)
+//
+// Special thanks to silentdeth [2] for the idea.
+//
+// Usage:
+//   run launch(altitude).
+//
+// References:
+//   [1] Basics of Space Flight by Ludwik Marian Celnikier (p. 149-156)
+//       https://books.google.com/books?id=kz216MKHBqcC&pg=PA151&dq=rocket+gravity+turn&hl=en&sa=X&ved=0CFAQ6AEwCWoVChMIw5OKsru9yAIVT9BjCh3qwQx5#v=onepage&q=rocket%20gravity%20turn&f=false
+//   [2] Let's Play KSP 0.90 (Science Harder Campaign) S3E26 Gravity Turn Script by silentdeth
+//       https://www.youtube.com/watch?v=qzj-oIxQ_Hk
+//
+// @version 0.1
+// @author http://www.reddit.com/u/onebit
 @lazyglobal off.
 
 parameter orbit_alt.
 
 launch(orbit_alt).
 
+/// launch into orbit given desired altitude.
 function launch {
   parameter orbit_alt.
 
-  ///
+  /// calculate speed orbital speed required for orbit at altitude.
   function orbital_speed_at_altitude {
     parameter altitude, mu, radius.
 
-    local gravity_at_sea_level to  body:mu / (body:radius) ^ 2.
+    local gravity_at_sea_level to body:mu / (body:radius) ^ 2.
     print "g at sea: " + gravity_at_sea_level + " m/s^2".
     return body:radius * sqrt(gravity_at_sea_level / (body:radius + altitude)).
   }
 
-  ///
-  function orbital_speed_at_altitude {
-    parameter altitude, mu, radius.
-
-    set gravity_at_sea_level to  body:mu / (body:radius) ^ 2.
-    print "g at sea: " + ghere + " m/s^2".
-    return body:radius * sqrt(gravity_at_sea_level / (body:radius + altitude)).
-  }
-
-  ///
+  /// calculate angle of ascent for speed.
   function calc_angle {
     parameter v, pitch, twr3.
-    //print "twr3=" + twr3.
+
     return v * tan(pitch/2) ^ (twr3*1) / abs(sin(pitch)).
   }
 
-  ///
+  /// generate ascient profile based desired speed and twr.
   function calc {
-    parameter twr2, desired_v.
+    parameter orbital_speed, twr.
 
-    local aa to 1.
     local v to list().
     v:add(0).
-    until aa > 90 {
-      local aa5 to calc_angle(desired_v, aa, twr2).
-      v:add(aa5).
-      set aa to aa + 1.
+
+    local angle to 1.
+    until angle > 90 {
+      local velocity to calc_angle(orbital_speed, angle, twr).
+      v:add(velocity).
+      set angle to angle + 1.
     }
 
     return v.
   }
 
-  ///
+  /// get angle of ascent from ascent profile.
   function getAngle {
     parameter current_velocity, twr2, v, desired_v.
     if current_velocity <= 25 {
@@ -67,7 +82,7 @@ function launch {
     return 90.
   }
 
-  ///
+  /// detach stage if out of fuel.
   function check_stage {
     local staged to False.
     until ship:maxthrust > 0 {
@@ -79,8 +94,10 @@ function launch {
    return staged.
   }
 
+  /// launch ship and reach orbital apoapsis.
   function ascend {
     parameter twr_list, desired_v.
+
     lock throttle to 1.
 
     local ship_gravity to body:mu / ((ship:altitude + body:radius)^2).
@@ -89,7 +106,7 @@ function launch {
     print "m: " + SHIP:MASS + ", g: " + ship_gravity + ", T: " + SHIP:AVAILABLETHRUST + ", twr: " + twr.
     print "desired velocity: " + desired_v + " m/s".
     //local v to list().
-    local v to calc(twr, desired_v).
+    local v to calc(desired_v, twr).
 
     local angle is 0.
     for var in v {
@@ -113,50 +130,69 @@ function launch {
       }
       if check_stage() or v:length = 0 {
         local z is twr.
-        set v to calc(z, desired_v).
+        set v to calc(desired_v, z).
       }
       local tilt to 90 - getAngle(speed, twr, v, desired_v).
       set tt to tilt.
 
       if (time:seconds >= last_calc + .5) {
-        print "speed: " +  round(speed, 1) + " m/s, pitch: " + round(tilt) + ", twr: " + round(twr, 2) + "apo: " + round(alt:APOAPSIS) + "            " at (0, 0).
-        print "========================================" at (0, 1).
+        print "status: LIFT-OFF" + BLANK at (0, 0).
+        print "speed: " +  round(speed, 1) + "m/s"
+          + ", pitch: " + round(tilt, 1)
+          + ", twr: " + round(twr, 2)
+          + BLANK at (0, 1).
+        print  "apoapsis: " + round(alt:APOAPSIS) + "m" + BLANK at (0, 2).
+        print "========================================" at (0, 3).
         set last_calc to time:seconds.
       }
     }
   }
 
+  /// coast to edge of atmosphere, keeping apoapsis above orbit altitude.
   function coast {
     parameter orbital_speed, orbit_alt.
 
-    lock steering to heading(90, 0).
-    lock throttle to 0.
-    //local lock speed to SHIP:VELOCITY:surface:mag.
-    local lock reached_altitude to alt:apoapsis >= orbit_alt.
-    until ship:altitude > 70000 {
-        print "speed: " + speed + ", orbital_speed: " + orbital_speed.
-        if reached_altitude {
-          lock throttle to 0.
-        } else {
-          lock throttle to 0.05.
-        }
+    lock steering to prograde.
+    local lock reached_apoapsis to alt:apoapsis >= orbit_alt.
+    local lock above_atmosphere to ship:altitude > 70000.
+    local last_print is 0.
+    until above_atmosphere and reached_apoapsis {
+      if time:seconds >= last_print + .5 {
+        print "status: COAST" + BLANK at (0, 0).
+        print "speed: " +  round(SHIP:VELOCITY:surface:mag, 1) + "m/s"
+          + ", pitch: " + round(ship:facing:pitch, 1)
+          + ", apoapsis: " + round(alt:APOAPSIS) + "m"
+          + "            " at (0, 1).
+        print "========================================" at (0, 2).
+        set last_print to time:seconds.
+      }
+
+      if reached_apoapsis {
+        lock throttle to 0.
+      } else {
+        lock throttle to 1.
+      }
     }
+
+    stop().
   }
 
-  function stop {
-    unlock steering.
-    unlock throttle.
-    SET SHIP:CONTROL:PILOTMAINTHROTTLE TO 0.
-  }
-
+  /// bring periapsis up to orbit altitude.
   function circularize {
     parameter orbit_alt.
+
     if alt:periapsis < orbit_alt {
+      print "status: CIRCULARIZE" + BLANK at (0, 0).
+      print "speed: " +  round(SHIP:VELOCITY:surface:mag, 1) + "m/s"
+        + ", pitch: " + round(ship:facing:pitch, 1)
+        + ", apoapsis: " + round(alt:APOAPSIS) + "m"
+        + "            " at (0, 1).
+      print "========================================" at (0, 2).
       local node to node(time:seconds + eta:apoapsis, 0, 0, 1).
       add node.
       local inc to 10.
       until node:orbit:periapsis >= orbit_alt and inc >= .1{
-        print "peri: " + node:orbit:periapsis.
+        //print "peri: " + node:orbit:periapsis.
         set node:prograde to node:prograde + inc.
         if node:orbit:periapsis >= orbit_alt {
           set node:prograde to node:prograde - inc.
@@ -176,12 +212,26 @@ function launch {
     }
   }
 
-  ///
+  /// unlock controls and set throttle to 0.
+  function stop {
+    unlock steering.
+    unlock throttle.
+    SET SHIP:CONTROL:PILOTMAINTHROTTLE TO 0.
+  }
+
+  /// display details of the launch
   function report {
     parameter desired_v, orbit_alt, twr_list, speed.
 
-    print "Desired Orbital Speed: " + round(desired_v, 1) + "m/s, Desired Orbit: " + round(orbit_alt) + "m".
-    print "Final Speed: " + round(speed, 1) + "m/s, Final Apoapsis: " + round(alt:APOAPSIS) + "m" + ", Final Periapsis: " + round(alt:periapsis) + "m".
+    print "========================================".
+    print "           LAUNCH REPORT".
+    print "========================================".
+    print "Orbital Speed: " + round(desired_v, 1) + "m/s".
+    print "Speed: " + round(speed, 1) + "m/s".
+    print "Orbit: " + round(orbit_alt) + "m".
+    print "Apoapsis: " + round(alt:APOAPSIS) + "m".
+    print "Periapsis: " + round(alt:periapsis) + "m".
+
     if twr_list:length > 0 {
       local sum_twr to 0.
       for ttwr in twr_list {
@@ -189,9 +239,18 @@ function launch {
       }
       print "Average TWR: " + round(sum_twr / twr_list:length, 2).
     }
+
+    print "status: COMPLETE" + BLANK at (0, 0).
+    print "speed: " +  round(SHIP:VELOCITY:orbit:mag, 1) + "m/s"
+      + ", pitch: " + round(ship:facing:pitch, 1)
+      + ", apoapsis: " + round(alt:APOAPSIS) + "m"
+      + "            " at (0, 1).
+    print "========================================" at (0, 2).
   }
 
-  /// MAIN
+  /// launch sequence
+  clearscreen.
+  local BLANK to "                                        ".
   local twr_list to list().
   local desired_v to orbital_speed_at_altitude(orbit_alt, body:mu, body:radius).
 

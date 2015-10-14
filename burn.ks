@@ -133,6 +133,12 @@ function burn_sequence {
   ////////////
   // MAIN
   ////////////
+
+  if SHIP:AVAILABLETHRUST = 0 {
+    print "Out of fuel.".
+    return.
+  }
+
   clearscreen.
   print ".".
   print ".".

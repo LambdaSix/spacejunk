@@ -1,3 +1,17 @@
+/// kOS HUD library for Kerbal Space Program by onebit
+///
+/// Accepts a list of lines, each with a sub-list of x coordinates and values.
+///
+///   list(
+///     list(x-coord, value, ...),
+///     list(x-coord, value, ...)
+///   )
+///
+/// The lines are printed in each and the line is cleared before each pass.
+///
+/// Example
+/// =======
+///
 /// hud_print(
 ///   list(
 ///     list(0, "a: 1", 15, "b: 2", 30, "c: 3"),
@@ -7,9 +21,8 @@
 ///
 /// Output:
 /// a: 1           b: 2           c: 3
-/// c: 4           d: 5
+/// d: 4           e: 5
 /// ===================================================
-///
 function hud_print {
   parameter lines.
 

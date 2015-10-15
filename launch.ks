@@ -24,6 +24,8 @@
 
 parameter orbit_alt.
 
+run lib_tty.
+
 launch(orbit_alt).
 
 /// launch into orbit given desired altitude.
@@ -136,7 +138,7 @@ function launch {
       set tt to tilt.
 
       if (time:seconds >= last_calc + .5) {
-        print_hud(
+        tty_print_lines(
           list(
             list("status: LIFT-OFF"),
             list(
@@ -161,7 +163,7 @@ function launch {
     local last_print is 0.
     until above_atmosphere and reached_apoapsis {
       if time:seconds >= last_print + .5 {
-        print_hud(
+        tty_print_lines(
           list(
             list("status: COAST"),
             list(
@@ -188,7 +190,7 @@ function launch {
     parameter orbit_alt.
 
     if alt:periapsis < orbit_alt {
-      print_hud(
+      tty_print_lines(
         list(
           list("status: CIRCULARIZE"),
           list(
@@ -249,7 +251,7 @@ function launch {
       print "Average TWR: " + round(sum_twr / twr_list:length, 2).
     }
 
-    print_hud(
+    tty_print_lines(
       list(
         list("status: COMPLETE"),
         list(
@@ -260,28 +262,27 @@ function launch {
       )).
   }
 
-  function print_hud {
-    parameter huds.
-
-    local width to 17.
-    local x to 0.
-    local y to 0.
-    local B to "          ".
-    for row in huds {
-      set x to 0.
-      print B + B + B + B + B + B at (0, y).
-      for col in row {
-        print col at (x * WIDTH, y).
-        set x to x + 1.
-      }
-      set y to y + 1.
-    }
-    print "===================================================" at (0, y).
-  }
+//  function print_hud {
+//    parameter huds.
+//
+//    local width to 17.
+//    local x to 0.
+//    local y to 0.
+//    local B to "          ".
+//    for row in huds {
+//      set x to 0.
+//      print B + B + B + B + B + B at (0, y).
+//      for col in row {
+//        print col at (x * WIDTH, y).
+//        set x to x + 1.
+//      }
+//      set y to y + 1.
+//    }
+//    print "===================================================" at (0, y).
+//  }
 
   /// launch sequence
   clearscreen.
-  local BLANK to "                                        ".
   local twr_list to list().
   local desired_v to orbital_speed_at_altitude(orbit_alt, body:mu, body:radius).
 

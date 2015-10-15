@@ -6,7 +6,16 @@
 
 global sj_tty_tabs to list(0, 17, 34).
 
-// Accepts a list of lines, each with a sub-list of x coordinates and values.
+// Prints a status area at the top of the screen.
+//
+// Each line is cleared before printing to remove artifacts.
+//
+// Parameters
+// ==========
+//
+// lines is a list that contains sub-lists of values to print:
+//
+// e.g.
 //
 //   list(
 //     list(value1, value2, valueN, ...),
@@ -14,22 +23,22 @@ global sj_tty_tabs to list(0, 17, 34).
 //     ...
 //   )
 //
-// The lines are printed in each and the line is cleared before each pass.
-//
 // Example
 // =======
 //
-// tty_set_tabs(0, 17, 34).
-// tty_print(
+// Print oribital status of the ship.
+//
+// tty_set_tabs(0, 25).
+// tty_print_lines(
 //   list(
-//     list("a: 1", "b: 2", "c: 3"),
-//     list("d: 4", "e: 5")
+//     list("state: LIFT-OFF"),
+//     list("apoapsis: " + ALT:APOAPSIS + "m", "periapsis: " + ALT:PERIAPSIS + "m")
 //   )
 // ).
 //
 // Output:
-// a: 1           b: 2           c: 3
-// d: 4           e: 5
+// state: LIFT-OFF
+// apoapsis: 102000.5m      periapsis: -24501.6m
 // ===================================================
 function tty_print_lines {
   parameter lines.
@@ -43,6 +52,8 @@ function tty_print_lines {
   tty_separator(y).
 }
 
+// Prints a list of values on a line with specified tab stops.
+// Line is cleared before printing.
 function tty_print {
   parameter line, y.
 
@@ -56,19 +67,21 @@ function tty_print {
   }
 }
 
+// Clear the line.
 function tty_clearline {
   parameter y.
 
   print "                                                   " at (0, y).
 }
 
+// Print a separator.
 function tty_separator {
   parameter y.
 
   print "===================================================" at (0, y).
 }
 
-
+// Set the tab stops.
 function tty_set_tabs {
   parameter tabs.
 

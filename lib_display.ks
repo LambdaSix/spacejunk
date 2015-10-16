@@ -18,9 +18,9 @@
 //    list(
 //      //   x   y
 //      list(10, 0), // status
-//      list(10, 1),  // altitude
-//      list(21, 1),  // apoapsis
-//      list(53, 1)   // periapsis
+//      list(10, 1), // altitude
+//      list(21, 1), // apoapsis
+//      list(53, 1)  // periapsis
 //    )
 //  ).
 function template_init {

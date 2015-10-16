@@ -103,6 +103,43 @@ function launch {
    return sj_launch_staged.
   }
 
+  function getheading {
+    local northPole TO latlng(90,0).
+    local head TO mod(360 - northPole:bearing,360).
+
+    return head.
+  }
+
+  function orient {
+    local lock on_course to (90 - getheading()) <= .15.
+
+    local panel is list (
+        "status:                   heading:               ",
+        "yaw:         roll:        pitch:                 ",
+        "=================================================="
+      ).
+    local coords is list(
+        list(0, 0),
+        list(35, 0),
+        list(5, 1),
+        list(19, 1),
+        list(33, 1)
+      ).
+    local template is template_init(panel, coords).
+
+    until on_course {
+      check_stage().
+      lock steering to heading(90, 90).
+      display_template(template, list(
+          "ORIENT",
+          round(getheading()),
+          round(ship:facing:yaw),
+          round(ship:facing:pitch),
+          round(ship:facing:roll)
+        )).
+    }
+  }
+
   /// launch ship and reach orbital apoapsis.
   function ascend {
     parameter twr_list, desired_v.
@@ -312,6 +349,7 @@ function launch {
   local twr_list to list().
   local desired_v to orbital_speed_at_altitude(orbit_alt, body:mu, body:radius).
 
+  //orient().
   ascend(twr_list, desired_v).
   coast(desired_v, orbit_alt).
   stop().

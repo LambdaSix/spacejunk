@@ -2,6 +2,9 @@
 //
 // A library of inefficient string manipulation functions.
 //
+// References:
+//   [1] https://www.reddit.com/r/Kos/comments/3oqt58/googlefu_is_failing_me_how_to_parse_a_string_into/cvzoddb
+//
 // @version 0.1
 // @author David Andersen
 @lazyglobal off.

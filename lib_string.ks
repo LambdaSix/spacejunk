@@ -32,10 +32,9 @@ function rpad {
   parameter s, width.
 
   local len is strlen(s).
-  local inc is len.
-  until inc >= width {
+  until len >= width {
     set s to s + " ".
-    set inc to inc + 1.
+    set len to len + 1.
   }
 
   return s.
@@ -47,10 +46,9 @@ function lpad {
   parameter s, width.
 
   local len is strlen(s).
-  local inc is len.
-  until inc >= width {
+  until len >= width {
     set s to " " + s.
-    set inc to inc + 1.
+    set len to len + 1.
   }
 
   return s.

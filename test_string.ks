@@ -1,3 +1,4 @@
+// unit tests for lib_string
 run lib_string.
 
 function assertEquals {

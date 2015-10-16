@@ -25,6 +25,8 @@
 parameter orbit_alt.
 
 run lib_tty.
+run lib_display.
+run lib_string.
 
 launch(orbit_alt).
 
@@ -86,19 +88,39 @@ function launch {
 
   /// detach stage if out of fuel.
   function check_stage {
-    global staged to False.
+    global sj_launch_staged to False.
     when ship:maxthrust = 0 then {
-      PRINT "Out of fuel. Staging.".
-      STAGE.
-      set staged to True.
-      preserve.
+      if not Stage:READY {
+        preserve.
+      } else {
+        PRINT "Out of fuel. Staging.".
+        STAGE.
+        set sj_launch_staged to True.
+        preserve.
+      }
    }
-   return staged.
+   return sj_launch_staged.
   }
 
   /// launch ship and reach orbital apoapsis.
   function ascend {
     parameter twr_list, desired_v.
+
+    local panel is list (
+        "status:                                           ",
+        "speed:           m/s  pitch:        twr:          ",
+        "apoapsis:        m    periapsis:        m         ",
+        "=================================================="
+      ).
+    local coords is list(
+        list(0, 0),  // status
+        list(11, 1), // speed
+        list(28, 1), // pitch
+        list(41, 1), // twr
+        list(10, 2), // apoapsis
+        list(33, 2)  // periapsis
+      ).
+    local template is template_init(panel, coords).
 
     lock throttle to 1.
 
@@ -138,16 +160,25 @@ function launch {
       set tt to tilt.
 
       if (time:seconds >= last_calc + .5) {
-        tty_print_lines(
-          list(
-            list("status: LIFT-OFF"),
-            list(
-              "speed: " +  round(speed, 1) + "m/s"
-              , "pitch: " + round(tilt, 1)
-              , "twr: " + round(twr, 2)
-            ),
-            list("apoapsis: " + round(alt:APOAPSIS) + "m")
-          )).
+        local data is list(
+            "LIFT-OFF",
+            lpad(round(speed, 1), 6),
+            lpad(round(tilt, 1), 5),
+            lpad(round(twr, 2), 4),
+            lpad(round(alt:APOAPSIS), 7),
+            lpad(round(alt:PERIAPSIS), 7)
+          ).
+        display_template(template, data).
+//          tty_print_lines(
+//            list(
+//              list("status: LIFT-OFF"),
+//              list(
+//                "speed: " +  round(speed, 1) + "m/s"
+//                , "pitch: " + round(tilt, 1)
+//                , "twr: " + round(twr, 2)
+//              ),
+//              list("apoapsis: " + round(alt:APOAPSIS) + "m")
+//            )).
         set last_calc to time:seconds.
       }
     }

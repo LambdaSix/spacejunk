@@ -24,9 +24,13 @@
 //    )
 //  ).
 function template_init {
-  parameter template, fields.
+  parameter layout, fieldinfo.
 
-  return list(template, fields).
+  return list(
+      layout,
+      fieldinfo,
+      0          // last time printed
+    ).
 }
 
 // Populates the template and displays it at 0, 0.
@@ -48,7 +52,12 @@ function display_template {
   parameter template, data.
 
   local layout is template[0].
-  local fields is template[1].
+  local fieldinfo is template[1].
+  local last_time is template[2].
+
+  if time:seconds < last_time + .25 {
+    return.
+  }
 
   local y is 0.
   for line in layout {
@@ -58,10 +67,12 @@ function display_template {
 
   local i is 0.
   for element in data {
-    local pos is fields[i].
+    local pos is fieldinfo[i].
     local x is pos[0].
     local y is pos[1].
     print element at (x, y).
     set i to i + 1.
   }
+
+  set template[2] to time:seconds.
 }

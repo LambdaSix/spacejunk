@@ -27,6 +27,7 @@ parameter orbit_alt.
 run lib_tty.
 run lib_display.
 run lib_string.
+run lib_util.
 
 launch(orbit_alt).
 
@@ -113,7 +114,7 @@ function launch {
         "=================================================="
       ).
     local coords is list(
-        list(0, 0),  // status
+        list(10, 0), // status
         list(11, 1), // speed
         list(28, 1), // pitch
         list(41, 1), // twr
@@ -141,7 +142,7 @@ function launch {
     lock speed to SHIP:VELOCITY:surface:mag.
     local tt to 0.
     lock throttle to 1.
-    local last_calc to 0.
+    //local last_calc to 0.
     lock steering to heading(90, tt).
     local last_twr to 0.
     local last_calc2 to 0.
@@ -159,28 +160,15 @@ function launch {
       local tilt to 90 - getAngle(speed, twr, v, desired_v).
       set tt to tilt.
 
-      if (time:seconds >= last_calc + .5) {
-        local data is list(
-            "LIFT-OFF",
-            lpad(round(speed, 1), 6),
-            lpad(round(tilt, 1), 5),
-            lpad(round(twr, 2), 4),
-            lpad(round(alt:APOAPSIS), 7),
-            lpad(round(alt:PERIAPSIS), 7)
-          ).
-        display_template(template, data).
-//          tty_print_lines(
-//            list(
-//              list("status: LIFT-OFF"),
-//              list(
-//                "speed: " +  round(speed, 1) + "m/s"
-//                , "pitch: " + round(tilt, 1)
-//                , "twr: " + round(twr, 2)
-//              ),
-//              list("apoapsis: " + round(alt:APOAPSIS) + "m")
-//            )).
-        set last_calc to time:seconds.
-      }
+      local data is list(
+          "LIFT-OFF",
+          lpad(round(speed, 1), 6),
+          lpad(round(tilt, 1), 5),
+          lpad(round(twr, 2), 4),
+          lpad(round(alt:APOAPSIS), 7),
+          lpad(round(alt:PERIAPSIS), 7)
+        ).
+      display_template(template, data).
     }
   }
 
@@ -188,29 +176,40 @@ function launch {
   function coast {
     parameter orbital_speed, orbit_alt.
 
+    local panel is list(
+        "status:                  apoapsis eta:            ",
+        "speed:     0000.0m/s     pitch:                   ",
+        "apoapsis: -000000m       periapsis: -000000m      ",
+        "=================================================="
+      ).
+    local fieldinfo is list(
+        list(8, 0),  // status
+        list(39, 0), // apoapsis eta
+        list(11, 1), // speed
+        list(32, 1), // pitch
+        list(10, 2), // apoapsis
+        list(36, 2)  // periapsis
+      ).
+    local coast_template is template_init(panel, fieldinfo).
+
     lock steering to prograde.
     local lock reached_apoapsis to alt:apoapsis >= orbit_alt.
     local lock above_atmosphere to ship:altitude > 70000.
-    local last_print is 0.
     until above_atmosphere and reached_apoapsis {
-      if time:seconds >= last_print + .5 {
-        tty_print_lines(
-          list(
-            list("status: COAST"),
-            list(
-              "speed: " + round(SHIP:VELOCITY:surface:mag, 1) + "m/s"
-              , "pitch: " + round(ship:facing:pitch, 1)
-              , "apoapsis: " + round(ALT:APOAPSIS) + "m"
-            )
-          )).
-        set last_print to time:seconds.
-      }
-
       if reached_apoapsis {
         lock throttle to 0.
       } else {
         lock throttle to 1.
       }
+      local data is list(
+          "COAST",
+          ttime(eta:apoapsis),
+          round(SHIP:VELOCITY:orbit:mag, 1),
+          round(ship:facing:pitch, 1),
+          round(ALT:APOAPSIS),
+          round(ALT:periapsis)
+        ).
+      display_template(coast_template, data).
     }
 
     stop().
@@ -220,16 +219,30 @@ function launch {
   function circularize {
     parameter orbit_alt.
 
+    local panel is list(
+        "status:                                 ",
+        "speed:     0000.0m/s    pitch:          ",
+        "apoapsis: -000000m  periapsis: -000000m ",
+        "=================================================="
+      ).
+    local fieldinfo is list(
+        list(8, 0),  // status
+        list(11, 1), // speed
+        list(31, 1), // pitch
+        list(10, 2), // apoapsis
+        list(31, 2) // periapsis
+      ).
+    local coast_template is template_init(panel, fieldinfo).
+
     if alt:periapsis < orbit_alt {
-      tty_print_lines(
-        list(
-          list("status: CIRCULARIZE"),
-          list(
-            "speed: " +  round(SHIP:VELOCITY:surface:mag, 1) + "m/s"
-            , "pitch: " + round(ship:facing:pitch, 1)
-            , "apoapsis: " + round(alt:APOAPSIS) + "m"
-          )
-        )).
+      local data is list(
+          "CIRCULARIZE",
+          round(SHIP:VELOCITY:surface:mag, 1),
+          round(ship:facing:pitch, 1),
+          round(ALT:APOAPSIS),
+          round(ALT:periapsis)
+        ).
+      display_template(coast_template, data).
       local node to node(time:seconds + eta:apoapsis, 0, 0, 1).
       add node.
       local inc to 10.
@@ -293,26 +306,8 @@ function launch {
       )).
   }
 
-//  function print_hud {
-//    parameter huds.
-//
-//    local width to 17.
-//    local x to 0.
-//    local y to 0.
-//    local B to "          ".
-//    for row in huds {
-//      set x to 0.
-//      print B + B + B + B + B + B at (0, y).
-//      for col in row {
-//        print col at (x * WIDTH, y).
-//        set x to x + 1.
-//      }
-//      set y to y + 1.
-//    }
-//    print "===================================================" at (0, y).
-//  }
-
   /// launch sequence
+  set terminal:width to 50.
   clearscreen.
   local twr_list to list().
   local desired_v to orbital_speed_at_altitude(orbit_alt, body:mu, body:radius).

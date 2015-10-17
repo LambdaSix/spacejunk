@@ -28,90 +28,20 @@ run lib_tty.
 run lib_display.
 run lib_string.
 run lib_util.
+run lib_orbit.
+run lib_ship.
 
 launch(orbit_alt).
 
-/// launch into orbit given desired altitude.
+// launch into circular orbit at the given  altitude.
+//
+// Parameters
+// ----------
+// orbit_alt - orbital altitude (m)
 function launch {
   parameter orbit_alt.
 
-  /// calculate speed orbital speed required for orbit at altitude.
-  function orbital_speed_at_altitude {
-    parameter altitude, mu, radius.
-
-    local gravity_at_sea_level to body:mu / (body:radius) ^ 2.
-    print "g at sea: " + gravity_at_sea_level + " m/s^2".
-    return body:radius * sqrt(gravity_at_sea_level / (body:radius + altitude)).
-  }
-
-  /// calculate angle of ascent for speed.
-  function calc_angle {
-    parameter v, pitch, twr3.
-
-    return v * tan(pitch/2) ^ (twr3*1) / abs(sin(pitch)).
-  }
-
-  /// generate ascient profile based desired speed and twr.
-  function calc {
-    parameter orbital_speed, twr.
-
-    local v to list().
-    v:add(0).
-
-    local angle to 1.
-    until angle > 90 {
-      local velocity to calc_angle(orbital_speed, angle, twr).
-      v:add(velocity).
-      set angle to angle + 1.
-    }
-
-    return v.
-  }
-
-  /// get angle of ascent from ascent profile.
-  function getAngle {
-    parameter current_velocity, twr2, v, desired_v.
-    if current_velocity <= 25 {
-      return 0.
-    }
-    local angle is 0.
-    for var in v {
-      if current_velocity <= var {
-        v:remove(angle).
-        v:insert(angle, calc_angle(desired_v, angle, twr2)).
-        return angle.
-      }
-      set angle to angle + 1.
-    }
-
-    return 90.
-  }
-
-  /// detach stage if out of fuel.
-  function check_stage {
-    global sj_launch_staged to False.
-    when ship:maxthrust = 0 then {
-      if not Stage:READY {
-        preserve.
-      } else {
-        PRINT "Out of fuel. Staging.".
-        STAGE.
-        set sj_launch_staged to True.
-        preserve.
-      }
-   }
-   return sj_launch_staged.
-  }
-
-  function getheading {
-    local northPole TO latlng(90,0).
-    local head TO mod(360 - northPole:bearing,360).
-
-    return head.
-  }
-
   function orient {
-    local lock on_course to (90 - getheading()) <= .15.
 
     local panel is list (
         "status:                   heading:               ",
@@ -127,12 +57,14 @@ function launch {
       ).
     local template is template_init(panel, coords).
 
+    local lock on_course to (90 - ship_heading()) <= .15.
+
     until on_course {
-      check_stage().
+      ship_stage().
       lock steering to heading(90, 90).
       display_template(template, list(
           "ORIENT",
-          round(getheading()),
+          round(ship_heading()),
           round(ship:facing:yaw),
           round(ship:facing:pitch),
           round(ship:facing:roll)
@@ -144,6 +76,51 @@ function launch {
   function ascend {
     parameter twr_list, desired_v.
 
+    /// calculate angle of ascent for speed.
+    function calc_angle {
+      parameter v, pitch, twr3.
+
+      return v * tan(pitch/2) ^ (twr3*1) / abs(sin(pitch)).
+    }
+
+    /// generate ascient profile based desired speed and twr.
+    function calc {
+      parameter orbital_speed, twr.
+
+      local v to list().
+      v:add(0).
+
+      local angle to 1.
+      until angle > 90 {
+        local velocity to calc_angle(orbital_speed, angle, twr).
+        v:add(velocity).
+        set angle to angle + 1.
+      }
+
+      return v.
+    }
+
+    /// get angle of ascent from ascent profile.
+    function getAngle {
+      parameter current_velocity, twr2, v, desired_v.
+
+      if current_velocity <= 25 {
+        return 0.
+      }
+      local angle is 0.
+      for var in v {
+        if current_velocity <= var {
+          v:remove(angle).
+          v:insert(angle, calc_angle(desired_v, angle, twr2)).
+          return angle.
+        }
+        set angle to angle + 1.
+      }
+
+      return 90.
+    }
+
+    // ASCEND
     local panel is list (
         "status:                                           ",
         "speed:           m/s  pitch:        twr:          ",
@@ -163,11 +140,9 @@ function launch {
     lock throttle to 1.
 
     local ship_gravity to body:mu / ((ship:altitude + body:radius)^2).
-    //lock a to body:mu * (body:radius / (body:radius + ship:altitude)) ^ 2.
     local twr to SHIP:AVAILABLETHRUST / (SHIP:MASS * ship_gravity).
     print "m: " + SHIP:MASS + ", g: " + ship_gravity + ", T: " + SHIP:AVAILABLETHRUST + ", twr: " + twr.
     print "desired velocity: " + desired_v + " m/s".
-    //local v to list().
     local v to calc(desired_v, twr).
 
     local angle is 0.
@@ -179,7 +154,6 @@ function launch {
     lock speed to SHIP:VELOCITY:surface:mag.
     local tt to 0.
     lock throttle to 1.
-    //local last_calc to 0.
     lock steering to heading(90, tt).
     local last_twr to 0.
     local last_calc2 to 0.
@@ -190,7 +164,7 @@ function launch {
         twr_list:add(twr).
         set last_twr to time:seconds.
       }
-      if check_stage() or v:length = 0 {
+      if ship_stage() or v:length = 0 {
         local z is twr.
         set v to calc(desired_v, z).
       }
@@ -249,7 +223,7 @@ function launch {
       display_template(coast_template, data).
     }
 
-    stop().
+    ship_stop().
   }
 
   /// bring periapsis up to orbit altitude.
@@ -283,8 +257,7 @@ function launch {
       local node to node(time:seconds + eta:apoapsis, 0, 0, 1).
       add node.
       local inc to 10.
-      until node:orbit:periapsis >= orbit_alt and inc >= .1{
-        //print "peri: " + node:orbit:periapsis.
+      until node:orbit:periapsis >= orbit_alt and inc >= .1 {
         set node:prograde to node:prograde + inc.
         if node:orbit:periapsis >= orbit_alt {
           set node:prograde to node:prograde - inc.
@@ -302,13 +275,6 @@ function launch {
       wait 3.
       run burn.
     }
-  }
-
-  /// unlock controls and set throttle to 0.
-  function stop {
-    unlock steering.
-    unlock throttle.
-    SET SHIP:CONTROL:PILOTMAINTHROTTLE TO 0.
   }
 
   /// display details of the launch
@@ -345,14 +311,14 @@ function launch {
 
   /// launch sequence
   set terminal:width to 50.
-  clearscreen.
+  //clearscreen.
   local twr_list to list().
-  local desired_v to orbital_speed_at_altitude(orbit_alt, body:mu, body:radius).
+  local desired_v to orbit_speed(orbit_alt, body:mu, body:radius).
 
   //orient().
   ascend(twr_list, desired_v).
   coast(desired_v, orbit_alt).
-  stop().
+  ship_stop().
   circularize(orbit_alt).
   report(desired_v, orbit_alt, twr_list, SHIP:VELOCITY:orbit:mag).
 }

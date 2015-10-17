@@ -1,5 +1,8 @@
 @lazyglobal off.
 
+run lib_util.
+run lib_ship.
+
 function burn_sequence {
   local start_time is time:seconds.
   local state is "idle".
@@ -7,12 +10,6 @@ function burn_sequence {
   local node to NEXTNODE.
   local lock dv to node:deltav:mag.
   local lock burn_start to node:eta - burn_duration / 2.
-
-  function stop {
-    unlock steering.
-    unlock throttle.
-    SET SHIP:CONTROL:PILOTMAINTHROTTLE TO 0.
-  }
 
   function set_state {
     parameter new_state.
@@ -106,16 +103,6 @@ function burn_sequence {
     print round(time:seconds - start_time) + ": " + message.
   }
 
-  function ttime {
-    parameter t.
-
-    if t >= 0 {
-      return "T-" + round(t) + "s".
-    }
-
-    return "T+" + round(t * -1) + "s".
-  }
-
   local last_print is 0.
   local lock burn_duration to dv / max_acc.
 
@@ -139,10 +126,6 @@ function burn_sequence {
     return.
   }
 
-  clearscreen.
-  print ".".
-  print ".".
-  print ".".
   update_hud(True).
 
   lock steering to sun:position.
@@ -158,7 +141,7 @@ function burn_sequence {
 
   burn(node).
 
-  stop().
+  ship_stop().
   wait 5.
   set_state("complete").
   remove node.

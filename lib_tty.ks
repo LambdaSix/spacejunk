@@ -1,5 +1,7 @@
 // kOS TTY library for Kerbal Space Program
 //
+// See lib_display.ks for version 2 of this.
+//
 // @version 0.1
 // @author David Andersen
 @lazyglobal off.

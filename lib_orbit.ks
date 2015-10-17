@@ -1,3 +1,4 @@
+// kOS orbital function library.
 @lazyglobal off.
 
 function orbit_speed {

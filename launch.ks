@@ -19,7 +19,7 @@
 //       https://www.youtube.com/watch?v=qzj-oIxQ_Hk
 //
 // @version 0.1
-// @author http://www.reddit.com/u/onebit
+// @author https://github.com/dtandersen
 @lazyglobal off.
 
 parameter orbit_alt.

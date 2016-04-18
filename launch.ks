@@ -25,7 +25,7 @@
 parameter orbit_alt.
 
 run lib_tty.
-run lib_display.
+run lib_template.
 run lib_string.
 run lib_util.
 run lib_orbit.
@@ -48,26 +48,19 @@ function launch {
         "yaw:         roll:        pitch:                 ",
         "=================================================="
       ).
-    local coords is list(
-        list(0, 0),
-        list(35, 0),
-        list(5, 1),
-        list(19, 1),
-        list(33, 1)
-      ).
-    local template is template_init(panel, coords).
+    local template is template_init(panel).
 
     local lock on_course to (90 - ship_heading()) <= .15.
 
     until on_course {
       ship_stage().
       lock steering to heading(90, 90).
-      display_template(template, list(
-          "ORIENT",
-          round(ship_heading()),
-          round(ship:facing:yaw),
-          round(ship:facing:pitch),
-          round(ship:facing:roll)
+      display_template(template, lexicon(
+          "status", "ORIENT",
+          "heading", round(ship_heading()),
+          "yaw", round(ship:facing:yaw),
+          "roll", round(ship:facing:pitch),
+          "pitch", round(ship:facing:roll)
         )).
     }
   }
@@ -122,20 +115,12 @@ function launch {
 
     // ASCEND
     local panel is list (
-        "status:                                           ",
-        "speed:           m/s  pitch:        twr:          ",
-        "apoapsis:        m    periapsis:        m         ",
+        "status:   {status}                                        ",
+        "speed:    {speed}m/s  pitch: {pitch}       twr: {twr}         ",
+        "apoapsis: {apoapsis}m    periapsis: {periapsis}m         ",
         "=================================================="
       ).
-    local coords is list(
-        list(10, 0), // status
-        list(11, 1), // speed
-        list(28, 1), // pitch
-        list(41, 1), // twr
-        list(10, 2), // apoapsis
-        list(33, 2)  // periapsis
-      ).
-    local template is template_init(panel, coords).
+    local template is template_init(panel).
 
     lock throttle to 1.
 
@@ -171,13 +156,13 @@ function launch {
       local tilt to 90 - getAngle(speed, twr, v, desired_v).
       set tt to tilt.
 
-      local data is list(
-          "LIFT-OFF",
-          lpad(round(speed, 1), 6),
-          lpad(round(tilt, 1), 5),
-          lpad(round(twr, 2), 4),
-          lpad(round(alt:APOAPSIS), 7),
-          lpad(round(alt:PERIAPSIS), 7)
+      local data is lexicon(
+          "status", "LIFT-OFF",
+          "speed", lpad(round(speed, 1), 6),
+          "pitch", lpad(round(tilt, 1), 5),
+          "twr", lpad(round(twr, 2), 4),
+          "apoapsis", lpad(round(alt:APOAPSIS), 7),
+          "periapsis", lpad(round(alt:PERIAPSIS), 7)
         ).
       display_template(template, data).
     }
@@ -188,20 +173,12 @@ function launch {
     parameter orbital_speed, orbit_alt.
 
     local panel is list(
-        "status:                  apoapsis eta:            ",
-        "speed:     0000.0m/s     pitch:                   ",
-        "apoapsis: -000000m       periapsis: -000000m      ",
+        "status:   {status}               apoapsis eta: {eta}           ",
+        "speed:    {speed}m/s     pitch: {pitch}                  ",
+        "apoapsis: {apoapsis}m       periapsis: {periapsis}m      ",
         "=================================================="
       ).
-    local fieldinfo is list(
-        list(8, 0),  // status
-        list(39, 0), // apoapsis eta
-        list(11, 1), // speed
-        list(32, 1), // pitch
-        list(10, 2), // apoapsis
-        list(36, 2)  // periapsis
-      ).
-    local coast_template is template_init(panel, fieldinfo).
+    local coast_template is template_init(panel).
 
     lock steering to prograde.
     local lock reached_apoapsis to alt:apoapsis >= orbit_alt.
@@ -212,13 +189,13 @@ function launch {
       } else {
         lock throttle to 1.
       }
-      local data is list(
-          "COAST",
-          ttime(eta:apoapsis),
-          round(SHIP:VELOCITY:orbit:mag, 1),
-          round(ship:facing:pitch, 1),
-          round(ALT:APOAPSIS),
-          round(ALT:periapsis)
+      local data is lexicon(
+          "status", "COAST",
+          "eta", ttime(eta:apoapsis),
+          "speed", round(SHIP:VELOCITY:orbit:mag, 1),
+          "pitch", round(ship:facing:pitch, 1),
+          "apoapsis", round(ALT:APOAPSIS),
+          "periapsis", round(ALT:periapsis)
         ).
       display_template(coast_template, data).
     }
@@ -231,27 +208,20 @@ function launch {
     parameter orbit_alt.
 
     local panel is list(
-        "status:                                 ",
-        "speed:     0000.0m/s    pitch:          ",
-        "apoapsis: -000000m  periapsis: -000000m ",
+        "status:   {status}                       ",
+        "speed:    {speed}m/s    pitch: {pitch}      ",
+        "apoapsis: {apoapsis}m  periapsis: {periapsis}m ",
         "=================================================="
       ).
-    local fieldinfo is list(
-        list(8, 0),  // status
-        list(11, 1), // speed
-        list(31, 1), // pitch
-        list(10, 2), // apoapsis
-        list(31, 2) // periapsis
-      ).
-    local coast_template is template_init(panel, fieldinfo).
+    local coast_template is template_init(panel).
 
     if alt:periapsis < orbit_alt {
-      local data is list(
-          "CIRCULARIZE",
-          round(SHIP:VELOCITY:surface:mag, 1),
-          round(ship:facing:pitch, 1),
-          round(ALT:APOAPSIS),
-          round(ALT:periapsis)
+      local data is lexicon(
+          "status", "CIRCULARIZE",
+          "speed", round(SHIP:VELOCITY:surface:mag, 1),
+          "pitch", round(ship:facing:pitch, 1),
+          "apoapsis", round(ALT:APOAPSIS),
+          "periapsis", round(ALT:periapsis)
         ).
       display_template(coast_template, data).
       local node to node(time:seconds + eta:apoapsis, 0, 0, 1).

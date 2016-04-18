@@ -1,11 +1,11 @@
 lib_string
 ==========
 
-Inefficient string manipulation functions to tide us over until kOS has them.
+Basic string manipulation functions.
 
 `strlen(s)`
 
-Return length of `s`.
+Returns the length of the string `s`.
 
 Input         | Output
 ------------- | -------------
@@ -16,7 +16,7 @@ strlen(1.23)  | 4
 
 `rpad(s, length)`
 
-Pad `s` to the right.
+Pads the string `s` to the right with spaces.
 
 Input            | Output
 ---------------- | -------------
@@ -27,7 +27,7 @@ rpad(1.23)       | "1.23 "
 
 `lpad(s, length)`
 
-Pad `s` to the left.
+Pads the string `s` to the left with spaces.
 
 Input            | Output
 ---------------- | -------------

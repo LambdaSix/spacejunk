@@ -5,7 +5,10 @@
 // References:
 //   [1] https://www.reddit.com/r/Kos/comments/3oqt58/googlefu_is_failing_me_how_to_parse_a_string_into/cvzoddb
 //
-// @version 0.1
+// Changelog
+// 0.2 - refactored to use build-in KOS string functions
+//
+// @version 0.2
 // @author David Andersen
 @lazyglobal off.
 
@@ -15,15 +18,8 @@
 function strlen {
   parameter s.
 
-  local tmp is " " + s.
-  local b is " ".
-  local inc is 0.
-  until b >= tmp {
-    set b to " " + b.
-    set inc to inc + 1.
-  }
-
-  return inc.
+  local s2 is "" + s.
+  return s2:length.
 }
 
 // adds spaces to the right of the string to increase its length to the specified width.
@@ -31,13 +27,8 @@ function strlen {
 function rpad {
   parameter s, width.
 
-  local len is strlen(s).
-  until len >= width {
-    set s to s + " ".
-    set len to len + 1.
-  }
-
-  return s.
+  local s2 is "" + s.
+  return s2:padright(width).
 }
 
 // adds spaces to the left of the string to increase its length to the specified width.
@@ -45,11 +36,6 @@ function rpad {
 function lpad {
   parameter s, width.
 
-  local len is strlen(s).
-  until len >= width {
-    set s to " " + s.
-    set len to len + 1.
-  }
-
-  return s.
+  local s2 is "" + s.
+  return s2:padleft(width).
 }
